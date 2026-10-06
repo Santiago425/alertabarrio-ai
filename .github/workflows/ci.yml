@@ -1,0 +1,45 @@
+name: CI componente IA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check app tests
+      - name: Pruebas del componente de IA
+        run: pytest -q
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir imagen Docker
+        run: docker build -t alertabarrio-ai .
+      - name: Publicar en GitHub Container Registry (solo main)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}:latest
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag alertabarrio-ai $IMAGE
+          docker push $IMAGE
+      - name: Desplegar en Render (si existe el deploy hook)
+        if: github.ref == 'refs/heads/main'
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$RENDER_DEPLOY_HOOK" ]; then curl -fsS -X POST "$RENDER_DEPLOY_HOOK"; else echo "Sin RENDER_DEPLOY_HOOK, se omite"; fi
