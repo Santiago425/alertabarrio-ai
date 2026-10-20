@@ -47,10 +47,10 @@ def test_analyze_report_risk_higher_in_pattern_slot():
 
 def test_heatmap_finds_hotspot():
     reports = [
-        {"latitude": 4.65, "longitude": -74.06, "occurred_at": _iso(7 * k, 22, weekday_target=4), "severity": 5, "neighborhood_id": 1, "incident_type_code": "armed_robbery"}
+        {"latitude": 1.2136, "longitude": -77.2811, "occurred_at": _iso(7 * k, 22, weekday_target=4), "severity": 5, "neighborhood_id": 1, "incident_type_code": "armed_robbery"}
         for k in range(1, 6)
-    ] + [{"latitude": 4.60, "longitude": -74.15, "occurred_at": _iso(20, 10), "severity": 2, "neighborhood_id": 2, "incident_type_code": "vandalism"}]
-    hoods = [{"id": 1, "name": "Chapinero", "latitude": 4.65, "longitude": -74.06}, {"id": 2, "name": "Kennedy", "latitude": 4.6, "longitude": -74.15}]
+    ] + [{"latitude": 1.1968, "longitude": -77.2728, "occurred_at": _iso(20, 10), "severity": 2, "neighborhood_id": 2, "incident_type_code": "vandalism"}]
+    hoods = [{"id": 1, "name": "Centro", "latitude": 1.2136, "longitude": -77.2811}, {"id": 2, "name": "Lorenzo de Aldana", "latitude": 1.1968, "longitude": -77.2728}]
     for model in ("kde", "frequency"):
         client.post("/api/v1/models/switch", json={"heatmap_model": model})
         body = client.post("/api/v1/heatmap", json={"reports": reports, "neighborhoods": hoods}).json()
@@ -62,14 +62,14 @@ def test_heatmap_finds_hotspot():
 
 def test_summary_template_and_fallback():
     payload = {
-        "neighborhood_name": "Chapinero",
+        "neighborhood_name": "Centro",
         "date": "2026-10-04",
         "reports": [{"title": "Atraco", "description": "con cuchillo", "incident_type": "Robo armado", "severity": 5, "status": "published", "occurred_at": "2026-10-04T21:10:00-05:00"}],
         "week_reports": [],
         "hotspots": [{"day_of_week": 3, "hour_block": 3, "risk_score": 1.0}],
     }
     body = client.post("/api/v1/summary", json=payload).json()
-    assert body["model"] == "template" and "Chapinero" in body["summary"] and "jueves" in body["summary"]
+    assert body["model"] == "template" and "Centro" in body["summary"] and "jueves" in body["summary"]
     # Un proveedor externo caido no rompe el servicio: responde con la plantilla
     client.post("/api/v1/models/switch", json={"summary_provider": "ollama", "llm_base_url": "http://127.0.0.1:9"})
     body = client.post("/api/v1/summary", json=payload).json()
@@ -80,3 +80,20 @@ def test_summary_template_and_fallback():
 def test_switch_rejects_unknown_model():
     assert client.post("/api/v1/models/switch", json={"classifier_model": "gpt-99"}).status_code == 400
     assert client.get("/api/v1/models").json()["classifier"] == "naive_bayes"
+
+
+def test_kde_bandwidth_adapts_to_city_size():
+    from app.models.risk import KDEHeatmap
+
+    kde = KDEHeatmap()
+    pasto = kde.bandwidth((1.19, -77.30, 1.24, -77.25))  # ~5 km
+    bogota = kde.bandwidth((4.55, -74.22, 4.78, -74.00))  # ~25 km
+    assert pasto < bogota and 0.0012 <= pasto <= 0.003
+    assert KDEHeatmap(bandwidth_deg=0.005).bandwidth((0, 0, 1, 1)) == 0.005
+
+
+def test_llm_prompt_mentions_city():
+    from app.providers.summary import _prompt
+
+    p = _prompt({"neighborhood_name": "Centro", "city": "Pasto", "date": "2026-10-20"})
+    assert "Centro en Pasto" in p

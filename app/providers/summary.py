@@ -71,7 +71,7 @@ class TemplateProvider:
 
 def _prompt(payload: dict) -> str:
     lines = [
-        f"Eres el asistente de seguridad del barrio {payload['neighborhood_name']} en Bogota.",
+        f"Eres el asistente de seguridad del barrio {payload['neighborhood_name']} en {payload.get('city') or 'Pasto'}.",
         f"Escribe en espanol un resumen breve (maximo 5 oraciones) de la actividad del {payload['date']}",
         "para los vecinos: que paso, que tan grave fue, comparacion con la semana y una recomendacion.",
         "No inventes datos que no esten abajo.",

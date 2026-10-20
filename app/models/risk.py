@@ -87,11 +87,21 @@ def _bbox_grid(bbox, size: int):
 class KDEHeatmap:
     name = "kde"
 
-    def __init__(self, grid_size: int = 36, bandwidth_deg: float = 0.0055) -> None:
+    def __init__(self, grid_size: int = 36, bandwidth_deg: Optional[float] = None) -> None:
         self.grid_size = grid_size
-        self.h = bandwidth_deg
+        # None = ancho de banda automatico segun el tamano de la ciudad
+        # (Pasto es mucho mas pequena que Bogota, asi que el kernel debe ser mas angosto)
+        self.fixed_h = bandwidth_deg
+
+    def bandwidth(self, bbox) -> float:
+        if self.fixed_h:
+            return self.fixed_h
+        min_lat, min_lon, max_lat, max_lon = bbox
+        span = max(max_lat - min_lat, max_lon - min_lon)
+        return max(0.0012, min(0.008, span * 0.035))
 
     def cells(self, reports, bbox, now, half_life):
+        self.h = self.bandwidth(bbox)
         min_lat, min_lon, dlat, dlon = _bbox_grid(bbox, self.grid_size)
         points = [
             (r["latitude"], r["longitude"], decay_weight(r["severity"], parse_dt(r["occurred_at"]), now, half_life))
@@ -151,5 +161,6 @@ def bbox_for(reports: List[dict], neighborhoods: List[dict]) -> Optional[Tuple[f
     lons = [p["longitude"] for p in reports + neighborhoods]
     if not lats:
         return None
-    pad = 0.01
+    # margen proporcional al tamano de la ciudad (minimo ~300 m)
+    pad = max(0.003, 0.08 * max(max(lats) - min(lats), max(lons) - min(lons)))
     return min(lats) - pad, min(lons) - pad, max(lats) + pad, max(lons) + pad
