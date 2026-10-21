@@ -6,7 +6,8 @@ Servicio **independiente** del backend (como recomendó el profe). El backend le
 |---|---|---|
 | `POST /api/v1/analyze-report` | Sugiere el tipo de incidente a partir del texto y calcula el riesgo de la zona en ese día/hora | `CLASSIFIER_MODEL`: `naive_bayes` (por defecto) · `keywords` |
 | `POST /api/v1/heatmap` | Mapa de calor predictivo + zonas/franjas calientes con decaimiento temporal | `HEATMAP_MODEL`: `kde` (por defecto) · `frequency` |
-| `POST /api/v1/summary` | Resumen diario en lenguaje natural | `SUMMARY_PROVIDER`: `template` · `ollama` · `openai_compatible` (Groq, OpenRouter, LM Studio…) · `anthropic` |
+| `POST /api/v1/summary` | Resumen diario en lenguaje natural | `SUMMARY_PROVIDER`: `auto` · `gemini` · `template` · `ollama` · `openai_compatible` (Groq, OpenRouter, LM Studio…) · `anthropic` |
+| `POST /api/v1/chat` | Asistente: responde preguntas de los vecinos con los datos reales | el mismo proveedor; sin LLM responde con reglas |
 | `GET /api/v1/models` | Modelos activos | |
 | `POST /api/v1/models/switch` | Cambiar de modelo en caliente (header `X-Admin-Token` si se configuró `ADMIN_TOKEN`) | |
 
@@ -41,3 +42,9 @@ pip install -r requirements-dev.txt
 uvicorn app.main:app --reload --port 8001
 pytest
 ```
+
+## Activar Gemini
+
+1. Crear una llave gratis en https://aistudio.google.com/apikey
+2. En Render, en el servicio de IA: **Environment** → agregar `GEMINI_API_KEY` con la llave → guardar (se redespliega solo).
+3. Con `SUMMARY_PROVIDER=auto` (por defecto) el resumen diario y el asistente pasan a usar Gemini. Si Gemini falla o no hay llave, se usan la plantilla y las reglas, así que la app nunca se queda sin respuesta.
