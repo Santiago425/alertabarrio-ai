@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -63,9 +63,15 @@ class SummaryIn(BaseModel):
     hotspots: List[SummaryHotspot] = []
 
 
+class ChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    text: str = Field(max_length=1500)
+
+
 class ChatIn(BaseModel):
     question: str = Field(min_length=2, max_length=500)
     context: Dict[str, Any] = {}
+    history: List[ChatTurn] = Field(default=[], max_length=12)
 
 
 class SwitchIn(BaseModel):

@@ -179,3 +179,16 @@ def test_chat_prompt_knows_pasto():
 
     prompt = _chat_prompt({"question": "me robaron en Bosques de la Colina 2", "context": {**CHAT_CONTEXT, "neighborhoods": ["Centro", "Potrerillo"]}})
     assert "geografia de Pasto" in prompt and "Centro, Potrerillo" in prompt and "123" in prompt
+
+
+def test_chat_prompt_keeps_history():
+    from app.providers.summary import _chat_prompt
+
+    prompt = _chat_prompt(
+        {
+            "question": "¿y a qué hora pasó más?",
+            "context": CHAT_CONTEXT,
+            "history": [{"role": "user", "text": "me robaron en Pandiaco"}, {"role": "assistant", "text": "Lo siento mucho."}],
+        }
+    )
+    assert "Vecino: me robaron en Pandiaco" in prompt and "Asistente: Lo siento mucho." in prompt

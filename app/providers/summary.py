@@ -273,6 +273,11 @@ def _chat_prompt(payload: dict) -> str:
         lines.append(f"- Riesgo alto en {h['neighborhood']} los {DAYS_ES[h['day_of_week']]} {BLOCKS_ES[h['hour_block']]}")
     for r in ctx.get("recent", [])[:8]:
         lines.append(f"- Reciente: {r['incident_type']} en {r['neighborhood']} ({r['when']}): {r['title']}")
+    history = payload.get("history") or []
+    if history:
+        lines += ["", "Conversacion hasta ahora (continua el hilo, no repitas saludos):"]
+        for h in history[-8:]:
+            lines.append(f"{'Vecino' if h['role'] == 'user' else 'Asistente'}: {h['text']}")
     lines += ["", f"Pregunta del vecino: {payload['question']}"]
     return "\n".join(lines)
 
