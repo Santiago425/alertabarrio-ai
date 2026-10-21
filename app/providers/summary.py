@@ -15,6 +15,7 @@ sistema nunca se quede sin respuesta.
 """
 
 import logging
+import re
 from collections import Counter
 from typing import Protocol, Tuple
 
@@ -225,30 +226,79 @@ def summarize_with_fallback(provider: SummaryProvider, payload: dict) -> Tuple[s
 
 
 # ------------------------------------------------------------------ asistente
+VICTIM_WORDS = ("me robaron", "me roban", "me asaltaron", "me atracaron", "me agredieron", "me golpearon", "me raparon", "fui victima", "me quitaron")
+
+# Vias y lugares de referencia de Pasto para ubicar al vecino
+PASTO_REFERENCIAS = (
+    "Avenida Panamericana, Avenida Boyaca, Avenida Las Americas, Avenida Julian Bucheli, Avenida Santander, "
+    "Avenida Idema, Avenida Chile, Avenida de los Estudiantes, Calle 18, Carrera 27, Plaza de Nariño, "
+    "Parque Bolivar, Parque Infantil, Terminal de Transportes, Universidad de Nariño (Torobajo), Unicentro, "
+    "Estadio Libertad, Hospital Departamental"
+)
+
+
+def _is_victim(question: str) -> bool:
+    q = question.lower()
+    return any(w in q for w in VICTIM_WORDS)
+
+
+def _place_in(question: str) -> str | None:
+    """Saca el lugar despues de 'en' (ej. 'me robaron en Bosques de la Colina 2')."""
+    m = re.search(r"\b(?:en|por)\s+(?:el\s+|la\s+|los\s+|las\s+|barrio\s+)?([^,.;!?]{3,60})", question, re.IGNORECASE)
+    return m.group(1).strip() if m else None
+
+
 def _chat_prompt(payload: dict) -> str:
     ctx = payload.get("context", {}) or {}
+    city = ctx.get("city", "Pasto")
     lines = [
-        f"Eres el asistente de seguridad de AlertaBarrio en {ctx.get('city', 'Pasto')}, Colombia.",
-        "Responde en espanol, cercano y claro, en maximo 4 oraciones. Usa SOLO los datos de abajo;",
-        "si no sabes algo dilo. Da consejos practicos de prevencion. No inventes cifras.",
+        f"Eres el asistente de seguridad de AlertaBarrio en {city}, Nariño, Colombia.",
+        "Responde en espanol, cercano y claro, en maximo 5 oraciones.",
+        f"Conoces la geografia de {city}: sus comunas, barrios, urbanizaciones, calles, carreras, avenidas y lugares conocidos.",
+        "Usa ese conocimiento para ubicar cualquier lugar que nombre el vecino aunque no este en la lista de la app,",
+        "y relacionalo con el barrio de la app mas cercano. Si no estas seguro de donde queda, dilo y pide una referencia.",
+        "Las cifras de alertas salen SOLO de los datos de abajo: no inventes cifras ni incidentes.",
+        "Si el vecino cuenta que fue victima (robo, asalto, agresion): muestra empatia, preguntale si esta bien,",
+        "recuerdale llamar al 123 si es una emergencia, denunciar ante la Policia o en adenunciar.policia.gov.co,",
+        "y reportarlo en AlertaBarrio con el boton Reportar para avisar a sus vecinos. Luego da 1 o 2 consejos para esa zona.",
         "",
         f"Barrio del usuario: {ctx.get('neighborhood') or 'no indicado'}",
+        f"Barrios con datos en la app: {', '.join(ctx.get('neighborhoods', [])) or 'sin dato'}",
+        f"Vias y lugares de referencia: {PASTO_REFERENCIAS}",
         f"Alertas activas en la ciudad: {ctx.get('active_alerts', 'sin dato')}",
     ]
-    for r in ctx.get("ranking", [])[:6]:
+    for r in ctx.get("ranking", [])[:8]:
         lines.append(f"- Barrio {r['neighborhood']}: {r['active_alerts']} alertas activas (gravedad acumulada {r['active_severity']})")
     for h in ctx.get("hotspots", [])[:5]:
         lines.append(f"- Riesgo alto en {h['neighborhood']} los {DAYS_ES[h['day_of_week']]} {BLOCKS_ES[h['hour_block']]}")
     for r in ctx.get("recent", [])[:8]:
         lines.append(f"- Reciente: {r['incident_type']} en {r['neighborhood']} ({r['when']}): {r['title']}")
+    history = payload.get("history") or []
+    if history:
+        lines += ["", "Conversacion hasta ahora (continua el hilo, no repitas saludos):"]
+        for h in history[-8:]:
+            lines.append(f"{'Vecino' if h['role'] == 'user' else 'Asistente'}: {h['text']}")
     lines += ["", f"Pregunta del vecino: {payload['question']}"]
     return "\n".join(lines)
+
+
+def _victim_answer(question: str) -> str:
+    place = _place_in(question)
+    where = f" en {place}" if place else ""
+    return (
+        f"Lamento mucho lo que te paso{where}. ¿Estas bien? Si estas en peligro o herido llama ya al 123. "
+        "Puedes denunciar ante la Policia o en linea en adenunciar.policia.gov.co. "
+        "Reportalo tambien en AlertaBarrio con el boton Reportar, marcando el lugar en el mapa, para que tus vecinos esten atentos. "
+        "Si puedes, anota la hora, como iban vestidos y hacia donde huyeron."
+    )
 
 
 def _rule_answer(payload: dict) -> str:
     """Respuesta sin modelo externo (cuando no hay Gemini u otro LLM configurado)."""
     ctx = payload.get("context", {}) or {}
     q = payload["question"].lower()
+    if _is_victim(q):
+        return _victim_answer(payload["question"])
     ranking = [r for r in ctx.get("ranking", []) if r.get("active_alerts")]
     hotspots = ctx.get("hotspots", [])
     hood = ctx.get("neighborhood")

@@ -163,3 +163,32 @@ def test_auto_provider_picks_gemini_only_with_key():
 
     assert isinstance(build_provider(Settings(summary_provider="auto", gemini_api_key=None)), TemplateProvider)
     assert isinstance(build_provider(Settings(summary_provider="auto", gemini_api_key="k")), GeminiProvider)
+
+
+def test_chat_victim_without_llm_gives_steps():
+    body = client.post(
+        "/api/v1/chat",
+        json={"question": "me robaron en bosques de la colina 2", "context": {**CHAT_CONTEXT, "neighborhoods": ["Centro", "Potrerillo"]}},
+    ).json()
+    assert body["model"] == "reglas"
+    assert "bosques de la colina 2" in body["answer"] and "123" in body["answer"] and "Reportar" in body["answer"]
+
+
+def test_chat_prompt_knows_pasto():
+    from app.providers.summary import _chat_prompt
+
+    prompt = _chat_prompt({"question": "me robaron en Bosques de la Colina 2", "context": {**CHAT_CONTEXT, "neighborhoods": ["Centro", "Potrerillo"]}})
+    assert "geografia de Pasto" in prompt and "Centro, Potrerillo" in prompt and "123" in prompt
+
+
+def test_chat_prompt_keeps_history():
+    from app.providers.summary import _chat_prompt
+
+    prompt = _chat_prompt(
+        {
+            "question": "¿y a qué hora pasó más?",
+            "context": CHAT_CONTEXT,
+            "history": [{"role": "user", "text": "me robaron en Pandiaco"}, {"role": "assistant", "text": "Lo siento mucho."}],
+        }
+    )
+    assert "Vecino: me robaron en Pandiaco" in prompt and "Asistente: Lo siento mucho." in prompt
