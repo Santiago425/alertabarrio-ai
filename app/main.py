@@ -4,6 +4,7 @@ Componente de IA de AlertaBarrio (servicio independiente del backend).
     POST /api/v1/analyze-report  clasifica el reporte y calcula riesgo de la zona
     POST /api/v1/heatmap         mapa de calor predictivo + zonas/horas calientes
     POST /api/v1/summary         resumen diario en lenguaje natural
+    POST /api/v1/chat            asistente: responde preguntas de los vecinos
     GET  /api/v1/models          modelos activos
     POST /api/v1/models/switch   cambiar de modelo en caliente
 
@@ -20,8 +21,8 @@ from fastapi import FastAPI, Header, HTTPException
 from .config import get_settings
 from .models.classifier import CLASSIFIERS
 from .models.risk import BLOCKS_ES, DAYS_ES, HEATMAPS, bbox_for, parse_dt, temporal_matrix, zone_risk
-from .providers.summary import build_provider, provider_label, summarize_with_fallback
-from .schemas import AnalyzeIn, HeatmapIn, SummaryIn, SwitchIn
+from .providers.summary import answer_question, build_provider, provider_label, summarize_with_fallback
+from .schemas import AnalyzeIn, ChatIn, HeatmapIn, SummaryIn, SwitchIn
 
 TYPE_NAMES = {
     "armed_robbery": "robo armado", "assault": "agresion o rina", "home_burglary": "robo a vivienda",
@@ -59,7 +60,7 @@ class Registry:
             "available": {
                 "classifier": list(CLASSIFIERS),
                 "heatmap": list(HEATMAPS),
-                "summary": ["template", "ollama", "openai_compatible", "anthropic"],
+                "summary": ["auto", "template", "gemini", "ollama", "openai_compatible", "anthropic"],
             },
         }
 
@@ -177,3 +178,9 @@ def heatmap(data: HeatmapIn):
 def summary(data: SummaryIn):
     text, model = summarize_with_fallback(registry.summary, data.model_dump())
     return {"model": model, "summary": text}
+
+
+@app.post("/api/v1/chat")
+def chat(data: ChatIn):
+    text, model = answer_question(registry.summary, data.model_dump())
+    return {"model": model, "answer": text}

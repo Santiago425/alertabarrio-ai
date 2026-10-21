@@ -97,3 +97,69 @@ def test_llm_prompt_mentions_city():
 
     p = _prompt({"neighborhood_name": "Centro", "city": "Pasto", "date": "2026-10-20"})
     assert "Centro en Pasto" in p
+
+
+CHAT_CONTEXT = {
+    "city": "Pasto",
+    "neighborhood": "Centro",
+    "active_alerts": 40,
+    "ranking": [
+        {"neighborhood": "Centro", "active_alerts": 20, "active_severity": 70},
+        {"neighborhood": "Potrerillo", "active_alerts": 10, "active_severity": 30},
+    ],
+    "hotspots": [{"neighborhood": "Centro", "day_of_week": 3, "hour_block": 3}],
+    "recent": [{"incident_type": "Hurto", "neighborhood": "Centro", "when": "hace 1 h", "title": "Raponazo"}],
+}
+
+
+def test_chat_without_llm_uses_rules():
+    body = client.post("/api/v1/chat", json={"question": "¿A qué hora es más peligroso?", "context": CHAT_CONTEXT}).json()
+    assert body["model"] == "reglas" and "jueves" in body["answer"]
+
+
+def test_chat_with_gemini(monkeypatch):
+    from app.providers import summary as prov
+
+    calls = {}
+
+    class Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": "Evita el Centro los jueves en la noche."}]}}]}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        calls.update(url=url, headers=headers, prompt=json["contents"][0]["parts"][0]["text"])
+        return Resp()
+
+    monkeypatch.setattr(prov.httpx, "post", fake_post)
+    client.post("/api/v1/models/switch", json={"summary_provider": "gemini", "llm_api_key": "test-key"})
+    try:
+        body = client.post("/api/v1/chat", json={"question": "¿Es seguro el Centro?", "context": CHAT_CONTEXT}).json()
+        assert body == {"model": "gemini:gemini-2.5-flash", "answer": "Evita el Centro los jueves en la noche."}
+        assert calls["url"].endswith("/models/gemini-2.5-flash:generateContent")
+        assert calls["headers"] == {"x-goog-api-key": "test-key"}
+        assert "Pasto" in calls["prompt"] and "¿Es seguro el Centro?" in calls["prompt"]
+    finally:
+        client.post("/api/v1/models/switch", json={"summary_provider": "template", "llm_api_key": ""})
+
+
+def test_gemini_down_falls_back_to_rules():
+    client.post("/api/v1/models/switch", json={"summary_provider": "gemini", "llm_base_url": ""})
+    from app.main import registry
+
+    registry.summary.base = "http://127.0.0.1:9"
+    try:
+        body = client.post("/api/v1/chat", json={"question": "¿Qué barrio evitar?", "context": CHAT_CONTEXT}).json()
+        assert body["model"].startswith("reglas (respaldo de gemini") and "Centro" in body["answer"]
+    finally:
+        client.post("/api/v1/models/switch", json={"summary_provider": "template"})
+
+
+def test_auto_provider_picks_gemini_only_with_key():
+    from app.config import Settings
+    from app.providers.summary import GeminiProvider, TemplateProvider, build_provider
+
+    assert isinstance(build_provider(Settings(summary_provider="auto", gemini_api_key=None)), TemplateProvider)
+    assert isinstance(build_provider(Settings(summary_provider="auto", gemini_api_key="k")), GeminiProvider)

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -63,10 +63,16 @@ class SummaryIn(BaseModel):
     hotspots: List[SummaryHotspot] = []
 
 
+class ChatIn(BaseModel):
+    question: str = Field(min_length=2, max_length=500)
+    context: Dict[str, Any] = {}
+
+
 class SwitchIn(BaseModel):
     classifier_model: Optional[str] = None
     heatmap_model: Optional[str] = None
     summary_provider: Optional[str] = None
     summary_model: Optional[str] = None
+    gemini_model: Optional[str] = None
     llm_base_url: Optional[str] = None
     llm_api_key: Optional[str] = None
