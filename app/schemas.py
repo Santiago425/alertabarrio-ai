@@ -56,6 +56,7 @@ class SummaryHotspot(BaseModel):
 
 class SummaryIn(BaseModel):
     neighborhood_name: str
+    city: str = "Pasto"
     date: str
     reports: List[SummaryReport] = []
     week_reports: List[SummaryReport] = []
