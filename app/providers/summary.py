@@ -175,7 +175,7 @@ class GeminiProvider(LLMProvider):
 
     def __init__(self, settings: Settings) -> None:
         self.base = (settings.gemini_base_url or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
-        self.model = settings.gemini_model or "gemini-2.5-flash"
+        self.model = settings.gemini_model or "gemini-3.1-flash-lite"
         self.key = settings.gemini_api_key or settings.llm_api_key or ""
         self.timeout = settings.llm_timeout_seconds
 
@@ -185,7 +185,7 @@ class GeminiProvider(LLMProvider):
             headers={"x-goog-api-key": self.key},
             json={
                 "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.4, "maxOutputTokens": 600},
+                "generationConfig": {"temperature": 0.4, "maxOutputTokens": 1024},
             },
             timeout=self.timeout,
         )

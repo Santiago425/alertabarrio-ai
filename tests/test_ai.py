@@ -137,8 +137,8 @@ def test_chat_with_gemini(monkeypatch):
     client.post("/api/v1/models/switch", json={"summary_provider": "gemini", "llm_api_key": "test-key"})
     try:
         body = client.post("/api/v1/chat", json={"question": "¿Es seguro el Centro?", "context": CHAT_CONTEXT}).json()
-        assert body == {"model": "gemini:gemini-2.5-flash", "answer": "Evita el Centro los jueves en la noche."}
-        assert calls["url"].endswith("/models/gemini-2.5-flash:generateContent")
+        assert body == {"model": "gemini:gemini-3.1-flash-lite", "answer": "Evita el Centro los jueves en la noche."}
+        assert calls["url"].endswith("/models/gemini-3.1-flash-lite:generateContent")
         assert calls["headers"] == {"x-goog-api-key": "test-key"}
         assert "Pasto" in calls["prompt"] and "¿Es seguro el Centro?" in calls["prompt"]
     finally:

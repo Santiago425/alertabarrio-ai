@@ -8,7 +8,7 @@ de entorno (o se usa POST /api/v1/models/switch en caliente).
     HEATMAP_MODEL      kde | frequency
     SUMMARY_PROVIDER   auto | template | gemini | ollama | openai_compatible | anthropic
     GEMINI_API_KEY     llave de Google AI Studio (con ella, "auto" usa Gemini)
-    GEMINI_MODEL       modelo de Gemini (por defecto gemini-2.5-flash)
+    GEMINI_MODEL       modelo de Gemini (por defecto gemini-3.1-flash-lite)
     SUMMARY_MODEL      nombre del modelo del proveedor (ej: llama3.2:3b, llama-3.1-8b-instant)
     LLM_BASE_URL       URL del proveedor (ej: http://localhost:11434, https://api.groq.com/openai/v1)
     LLM_API_KEY        llave del proveedor (si aplica)
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = 25.0
 
     gemini_api_key: Optional[str] = None
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.1-flash-lite"
     gemini_base_url: str = ""
 
     # Si se define, POST /api/v1/models/switch exige el header X-Admin-Token
