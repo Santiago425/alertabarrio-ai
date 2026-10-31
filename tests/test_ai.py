@@ -171,10 +171,10 @@ def test_chat_victim_without_llm_gives_steps():
         json={"question": "me robaron en bosques de la colina 2", "context": {**CHAT_CONTEXT, "neighborhoods": ["Centro", "Potrerillo"]}},
     ).json()
     assert body["model"] == "reglas"
-    assert "bosques de la colina 2" in body["answer"] and "123" in body["answer"] and "Reportar" in body["answer"]
+    assert "bosques de la colina 2" in body["answer"] and "123" in body["answer"] and "Reportalo" in body["answer"]
 
 
-def test_chat_prompt_knows_pasto():
+def test_chat_prompt_knows_the_city():
     from app.providers.summary import _chat_prompt
 
     prompt = _chat_prompt({"question": "me robaron en Bosques de la Colina 2", "context": {**CHAT_CONTEXT, "neighborhoods": ["Centro", "Potrerillo"]}})
@@ -192,3 +192,42 @@ def test_chat_prompt_keeps_history():
         }
     )
     assert "Vecino: me robaron en Pandiaco" in prompt and "Asistente: Lo siento mucho." in prompt
+
+
+TYPES = [
+    {"code": "armed_robbery", "name": "Robo armado"},
+    {"code": "theft", "name": "Hurto"},
+    {"code": "assault", "name": "Agresion o riña"},
+]
+PLACES = [{"id": 1, "name": "Centro"}, {"id": 2, "name": "Torobajo"}, {"id": 3, "name": "Las Cuadras"}]
+
+
+def test_interpret_report_without_llm():
+    body = client.post(
+        "/api/v1/interpret-report",
+        json={"text": "me atracaron con una pistola en Las Cuadras", "incident_types": TYPES, "neighborhoods": PLACES},
+    ).json()
+    assert body["incident_type_code"] == "armed_robbery"
+    assert body["neighborhood_id"] == 3
+    assert body["title"].startswith("Robo armado") and body["model"].startswith("reglas")
+
+
+def test_interpret_route_without_llm():
+    r = client.post("/api/v1/interpret-route", json={"text": "necesito ir al Centro desde Torobajo", "neighborhoods": PLACES}).json()
+    assert r["origin_id"] == 2 and r["destination_id"] == 1
+    r = client.post("/api/v1/interpret-route", json={"text": "ruta segura hasta Las Cuadras", "neighborhoods": PLACES}).json()
+    assert r["origin_id"] is None and r["destination_id"] == 3
+
+
+def test_interpret_report_with_llm_json(monkeypatch):
+    from app.providers import interpret
+    from app.providers.summary import LLMProvider
+
+    class Fake(LLMProvider):
+        name = "fake"
+
+        def generate(self, prompt: str) -> str:
+            return '```json\n{"incident_type_code": "theft", "title": "Raponazo", "description": "Le quitaron el celular.", "place": "Avenida Santander", "neighborhood": "Centro"}\n```'
+
+    out = interpret.interpret_report(Fake(), NaiveBayesClassifier(), {"text": "me raparon el cel en la santander", "incident_types": TYPES, "neighborhoods": PLACES})
+    assert out["incident_type_code"] == "theft" and out["neighborhood_id"] == 1 and out["place"] == "Avenida Santander"

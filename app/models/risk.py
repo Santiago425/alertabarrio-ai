@@ -90,7 +90,7 @@ class KDEHeatmap:
     def __init__(self, grid_size: int = 36, bandwidth_deg: Optional[float] = None) -> None:
         self.grid_size = grid_size
         # None = ancho de banda automatico segun el tamano de la ciudad
-        # (Pasto es mucho mas pequena que Bogota, asi que el kernel debe ser mas angosto)
+        # (una ciudad mediana necesita un kernel angosto)
         self.fixed_h = bandwidth_deg
 
     def bandwidth(self, bbox) -> float:

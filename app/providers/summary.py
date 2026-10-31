@@ -21,7 +21,7 @@ from typing import Protocol, Tuple
 
 import httpx
 
-from ..config import Settings
+from ..config import Settings, get_settings
 from ..models.risk import BLOCKS_ES, DAYS_ES, parse_dt
 
 log = logging.getLogger("alertabarrio.ai.summary")
@@ -86,7 +86,7 @@ class TemplateProvider:
 
 def _prompt(payload: dict) -> str:
     lines = [
-        f"Eres el asistente de seguridad del barrio {payload['neighborhood_name']} en {payload.get('city') or 'Pasto'}.",
+        f"Eres el asistente de seguridad del barrio {payload['neighborhood_name']} en {payload.get('city') or 'la ciudad'}.",
         f"Escribe en espanol un resumen breve (maximo 5 oraciones) de la actividad del {payload['date']}",
         "para los vecinos: que paso, que tan grave fue, comparacion con la semana y una recomendacion.",
         "No inventes datos que no esten abajo.",
@@ -228,15 +228,6 @@ def summarize_with_fallback(provider: SummaryProvider, payload: dict) -> Tuple[s
 # ------------------------------------------------------------------ asistente
 VICTIM_WORDS = ("me robaron", "me roban", "me asaltaron", "me atracaron", "me agredieron", "me golpearon", "me raparon", "fui victima", "me quitaron")
 
-# Vias y lugares de referencia de Pasto para ubicar al vecino
-PASTO_REFERENCIAS = (
-    "Avenida Panamericana, Avenida Boyaca, Avenida Las Americas, Avenida Julian Bucheli, Avenida Santander, "
-    "Avenida Idema, Avenida Chile, Avenida de los Estudiantes, Calle 18, Carrera 27, Plaza de Nariño, "
-    "Parque Bolivar, Parque Infantil, Terminal de Transportes, Universidad de Nariño (Torobajo), Unicentro, "
-    "Estadio Libertad, Hospital Departamental"
-)
-
-
 def _is_victim(question: str) -> bool:
     q = question.lower()
     return any(w in q for w in VICTIM_WORDS)
@@ -250,9 +241,9 @@ def _place_in(question: str) -> str | None:
 
 def _chat_prompt(payload: dict) -> str:
     ctx = payload.get("context", {}) or {}
-    city = ctx.get("city", "Pasto")
+    city = ctx.get("city") or "la ciudad"
     lines = [
-        f"Eres el asistente de seguridad de AlertaBarrio en {city}, Nariño, Colombia.",
+        f"Eres Vigia, el asistente de seguridad de AlertaBarrio en {city}, Colombia.",
         "Responde en espanol, cercano y claro, en maximo 5 oraciones.",
         f"Conoces la geografia de {city}: sus comunas, barrios, urbanizaciones, calles, carreras, avenidas y lugares conocidos.",
         "Usa ese conocimiento para ubicar cualquier lugar que nombre el vecino aunque no este en la lista de la app,",
@@ -260,11 +251,11 @@ def _chat_prompt(payload: dict) -> str:
         "Las cifras de alertas salen SOLO de los datos de abajo: no inventes cifras ni incidentes.",
         "Si el vecino cuenta que fue victima (robo, asalto, agresion): muestra empatia, preguntale si esta bien,",
         "recuerdale llamar al 123 si es una emergencia, denunciar ante la Policia o en adenunciar.policia.gov.co,",
-        "y reportarlo en AlertaBarrio con el boton Reportar para avisar a sus vecinos. Luego da 1 o 2 consejos para esa zona.",
+        "y reportarlo contandoselo a Vigia (por voz o texto) para avisar a sus vecinos. Luego da 1 o 2 consejos para esa zona.",
         "",
         f"Barrio del usuario: {ctx.get('neighborhood') or 'no indicado'}",
         f"Barrios con datos en la app: {', '.join(ctx.get('neighborhoods', [])) or 'sin dato'}",
-        f"Vias y lugares de referencia: {PASTO_REFERENCIAS}",
+        f"Vias y lugares de referencia: {get_settings().city_landmarks or 'sin dato'}",
         f"Alertas activas en la ciudad: {ctx.get('active_alerts', 'sin dato')}",
     ]
     for r in ctx.get("ranking", [])[:8]:
@@ -288,7 +279,7 @@ def _victim_answer(question: str) -> str:
     return (
         f"Lamento mucho lo que te paso{where}. ¿Estas bien? Si estas en peligro o herido llama ya al 123. "
         "Puedes denunciar ante la Policia o en linea en adenunciar.policia.gov.co. "
-        "Reportalo tambien en AlertaBarrio con el boton Reportar, marcando el lugar en el mapa, para que tus vecinos esten atentos. "
+        "Reportalo tambien: solo cuentame que paso y yo armo el reporte con tu ubicacion, para que tus vecinos esten atentos. "
         "Si puedes, anota la hora, como iban vestidos y hacia donde huyeron."
     )
 

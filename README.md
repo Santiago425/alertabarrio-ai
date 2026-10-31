@@ -8,6 +8,8 @@ Servicio **independiente** del backend (como recomendó el profe). El backend le
 | `POST /api/v1/heatmap` | Mapa de calor predictivo + zonas/franjas calientes con decaimiento temporal | `HEATMAP_MODEL`: `kde` (por defecto) · `frequency` |
 | `POST /api/v1/summary` | Resumen diario en lenguaje natural | `SUMMARY_PROVIDER`: `auto` · `gemini` · `template` · `ollama` · `openai_compatible` (Groq, OpenRouter, LM Studio…) · `anthropic` |
 | `POST /api/v1/chat` | Asistente: responde preguntas de los vecinos con los datos reales | el mismo proveedor; sin LLM responde con reglas |
+| `POST /api/v1/interpret-report` | Vigía: convierte lo que el vecino dice (voz o texto) en un reporte: tipo, título, descripción y barrio | el mismo proveedor; sin LLM usa el clasificador y busca el barrio en el texto |
+| `POST /api/v1/interpret-route` | Vigía: saca origen y destino de "necesito ir de la U al centro" | el mismo proveedor; sin LLM busca los barrios en el texto |
 | `GET /api/v1/models` | Modelos activos | |
 | `POST /api/v1/models/switch` | Cambiar de modelo en caliente (header `X-Admin-Token` si se configuró `ADMIN_TOKEN`) | |
 
