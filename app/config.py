@@ -12,6 +12,7 @@ de entorno (o se usa POST /api/v1/models/switch en caliente).
     SUMMARY_MODEL      nombre del modelo del proveedor (ej: llama3.2:3b, llama-3.1-8b-instant)
     LLM_BASE_URL       URL del proveedor (ej: http://localhost:11434, https://api.groq.com/openai/v1)
     LLM_API_KEY        llave del proveedor (si aplica)
+    CITY_LANDMARKS     vias y lugares conocidos de la ciudad, separados por coma
 """
 
 from functools import lru_cache
@@ -34,6 +35,14 @@ class Settings(BaseSettings):
     gemini_api_key: Optional[str] = None
     gemini_model: str = "gemini-3.1-flash-lite"
     gemini_base_url: str = ""
+
+    # Vias y lugares conocidos de la ciudad (ayudan al asistente a ubicar al vecino)
+    city_landmarks: str = (
+        "Avenida Panamericana, Avenida Boyaca, Avenida Las Americas, Avenida Julian Bucheli, Avenida Santander, "
+        "Avenida Idema, Avenida Chile, Avenida de los Estudiantes, Calle 18, Carrera 27, Plaza de Nariño, "
+        "Parque Bolivar, Parque Infantil, Terminal de Transportes, Universidad de Nariño (Torobajo), Unicentro, "
+        "Estadio Libertad, Hospital Departamental"
+    )
 
     # Si se define, POST /api/v1/models/switch exige el header X-Admin-Token
     admin_token: Optional[str] = None

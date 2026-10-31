@@ -5,6 +5,8 @@ Componente de IA de AlertaBarrio (servicio independiente del backend).
     POST /api/v1/heatmap         mapa de calor predictivo + zonas/horas calientes
     POST /api/v1/summary         resumen diario en lenguaje natural
     POST /api/v1/chat            asistente: responde preguntas de los vecinos
+    POST /api/v1/interpret-report  convierte lo que dice el vecino (voz/texto) en un reporte
+    POST /api/v1/interpret-route   saca origen y destino de una peticion de ruta segura
     GET  /api/v1/models          modelos activos
     POST /api/v1/models/switch   cambiar de modelo en caliente
 
@@ -21,8 +23,9 @@ from fastapi import FastAPI, Header, HTTPException
 from .config import get_settings
 from .models.classifier import CLASSIFIERS
 from .models.risk import BLOCKS_ES, DAYS_ES, HEATMAPS, bbox_for, parse_dt, temporal_matrix, zone_risk
+from .providers.interpret import interpret_report, interpret_route
 from .providers.summary import answer_question, build_provider, provider_label, summarize_with_fallback
-from .schemas import AnalyzeIn, ChatIn, HeatmapIn, SummaryIn, SwitchIn
+from .schemas import AnalyzeIn, ChatIn, HeatmapIn, InterpretReportIn, InterpretRouteIn, SummaryIn, SwitchIn
 
 TYPE_NAMES = {
     "armed_robbery": "robo armado", "assault": "agresion o rina", "home_burglary": "robo a vivienda",
@@ -184,3 +187,13 @@ def summary(data: SummaryIn):
 def chat(data: ChatIn):
     text, model = answer_question(registry.summary, data.model_dump())
     return {"model": model, "answer": text}
+
+
+@app.post("/api/v1/interpret-report")
+def interpret_report_endpoint(data: InterpretReportIn):
+    return interpret_report(registry.summary, registry.classifier, data.model_dump())
+
+
+@app.post("/api/v1/interpret-route")
+def interpret_route_endpoint(data: InterpretRouteIn):
+    return interpret_route(registry.summary, data.model_dump())

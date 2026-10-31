@@ -56,7 +56,7 @@ class SummaryHotspot(BaseModel):
 
 class SummaryIn(BaseModel):
     neighborhood_name: str
-    city: str = "Pasto"
+    city: str = ""
     date: str
     reports: List[SummaryReport] = []
     week_reports: List[SummaryReport] = []
@@ -72,6 +72,29 @@ class ChatIn(BaseModel):
     question: str = Field(min_length=2, max_length=500)
     context: Dict[str, Any] = {}
     history: List[ChatTurn] = Field(default=[], max_length=12)
+
+
+class Place(BaseModel):
+    id: int
+    name: str
+
+
+class IncidentTypeIn(BaseModel):
+    code: str
+    name: str
+
+
+class InterpretReportIn(BaseModel):
+    text: str = Field(min_length=3, max_length=1000)
+    city: str = ""
+    incident_types: List[IncidentTypeIn] = Field(min_length=1)
+    neighborhoods: List[Place] = []
+
+
+class InterpretRouteIn(BaseModel):
+    text: str = Field(min_length=3, max_length=500)
+    city: str = ""
+    neighborhoods: List[Place] = []
 
 
 class SwitchIn(BaseModel):
