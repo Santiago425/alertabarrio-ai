@@ -19,7 +19,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Optional, Protocol, Tuple
 
-DAYS_ES = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabados", "domingos"]
+DAYS_ES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábados", "domingos"]
 BLOCKS_ES = ["entre 00:00 y 06:00", "entre 06:00 y 12:00", "entre 12:00 y 18:00", "entre 18:00 y 24:00"]
 
 

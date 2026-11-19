@@ -63,7 +63,7 @@ class TemplateProvider:
             worst = max(today, key=lambda r: r["severity"])
             hour = parse_dt(worst["occurred_at"]).strftime("%H:%M")
             parts.append(f"Hoy se registraron {len(today)} reportes en {hood}: {listed}.")
-            parts.append(f"El caso mas grave fue \"{worst['title']}\" ({worst['incident_type'].lower()}) cerca de las {hour}.")
+            parts.append(f"El caso más grave fue \"{worst['title']}\" ({worst['incident_type'].lower()}) cerca de las {hour}.")
             verified = sum(1 for r in today if r["status"] == "verified")
             if verified == 1:
                 parts.append("Uno de ellos ya fue confirmado por otros vecinos.")
@@ -72,15 +72,15 @@ class TemplateProvider:
         if week:
             avg = len(week) / 7
             trend = "por encima" if len(today) > avg * 1.3 else "por debajo" if len(today) < avg * 0.7 else "dentro"
-            parts.append(f"En los ultimos 7 dias hubo {len(week)} reportes (promedio {avg:.1f} por dia), asi que hoy esta {trend} de lo normal.")
+            parts.append(f"En los últimos 7 días hubo {len(week)} reportes (promedio {avg:.1f} por día), así que hoy está {trend} de lo normal.")
         if hotspots:
             h = hotspots[0]
             parts.append(
-                f"Segun el historial, el mayor riesgo en la zona es los {DAYS_ES[h['day_of_week']]} "
-                f"{BLOCKS_ES[h['hour_block']]}: evite transitar solo y prefiera vias iluminadas en ese horario."
+                f"Según el historial, el mayor riesgo en la zona es los {DAYS_ES[h['day_of_week']]} "
+                f"{BLOCKS_ES[h['hour_block']]}: evite transitar solo y prefiera vías iluminadas en ese horario."
             )
         elif today:
-            parts.append("Recomendacion: este atento, no exhiba objetos de valor y reporte cualquier situacion sospechosa.")
+            parts.append("Recomendación: esté atento, no exhiba objetos de valor y reporte cualquier situación sospechosa.")
         return " ".join(parts)
 
 
@@ -277,10 +277,10 @@ def _victim_answer(question: str) -> str:
     place = _place_in(question)
     where = f" en {place}" if place else ""
     return (
-        f"Lamento mucho lo que te paso{where}. ¿Estas bien? Si estas en peligro o herido llama ya al 123. "
-        "Puedes denunciar ante la Policia o en linea en adenunciar.policia.gov.co. "
-        "Reportalo tambien: solo cuentame que paso y yo armo el reporte con tu ubicacion, para que tus vecinos esten atentos. "
-        "Si puedes, anota la hora, como iban vestidos y hacia donde huyeron."
+        f"Lamento mucho lo que te pasó{where}. ¿Estás bien? Si estás en peligro o herido llama ya al 123. "
+        "Puedes denunciar ante la Policía o en línea en adenunciar.policia.gov.co. "
+        "Repórtalo también: solo cuéntame qué pasó y yo armo el reporte con tu ubicación, para que tus vecinos estén atentos. "
+        "Si puedes, anota la hora, cómo iban vestidos y hacia dónde huyeron."
     )
 
 
@@ -296,13 +296,13 @@ def _rule_answer(payload: dict) -> str:
     parts = []
     if any(w in q for w in ("hora", "cuando", "noche", "dia", "horario")) and hotspots:
         h = hotspots[0]
-        parts.append(f"Segun el historial, el momento mas riesgoso es en {h['neighborhood']} los {DAYS_ES[h['day_of_week']]} {BLOCKS_ES[h['hour_block']]}.")
+        parts.append(f"Según el historial, el momento más riesgoso es en {h['neighborhood']} los {DAYS_ES[h['day_of_week']]} {BLOCKS_ES[h['hour_block']]}.")
     if any(w in q for w in ("barrio", "zona", "donde", "peligro", "seguro", "evitar")) and ranking:
         top = ", ".join(r["neighborhood"] for r in ranking[:3])
         safest = ranking[-1]["neighborhood"] if len(ranking) > 3 else None
-        parts.append(f"Ahora mismo las zonas con mas alertas activas son {top}.")
+        parts.append(f"Ahora mismo las zonas con más alertas activas son {top}.")
         if safest:
-            parts.append(f"Entre los barrios con alertas, {safest} es de los mas tranquilos.")
+            parts.append(f"Entre los barrios con alertas, {safest} es de los más tranquilos.")
     if hood and not parts:
         mine = next((r for r in ranking if r["neighborhood"] == hood), None)
         if mine:
@@ -310,8 +310,8 @@ def _rule_answer(payload: dict) -> str:
     if not parts:
         parts.append(f"Hay {ctx.get('active_alerts', 'varias')} alertas activas en {ctx.get('city', 'la ciudad')}.")
         if ranking:
-            parts.append(f"El barrio con mas alertas es {ranking[0]['neighborhood']}.")
-    parts.append("Consejo: evita caminar solo de noche por vias oscuras, no muestres el celular y reporta cualquier cosa sospechosa.")
+            parts.append(f"El barrio con más alertas es {ranking[0]['neighborhood']}.")
+    parts.append("Consejo: evita caminar solo de noche por vías oscuras, no muestres el celular y reporta cualquier cosa sospechosa.")
     return " ".join(parts)
 
 
