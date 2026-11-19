@@ -171,7 +171,7 @@ def test_chat_victim_without_llm_gives_steps():
         json={"question": "me robaron en bosques de la colina 2", "context": {**CHAT_CONTEXT, "neighborhoods": ["Centro", "Potrerillo"]}},
     ).json()
     assert body["model"] == "reglas"
-    assert "bosques de la colina 2" in body["answer"] and "123" in body["answer"] and "Reportalo" in body["answer"]
+    assert "bosques de la colina 2" in body["answer"] and "123" in body["answer"] and "Repórtalo" in body["answer"]
 
 
 def test_chat_prompt_knows_the_city():

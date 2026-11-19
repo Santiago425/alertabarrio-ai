@@ -161,12 +161,12 @@ def heatmap(data: HeatmapIn):
     for h in hotspots[:3]:
         insights.append(
             f"Pico de riesgo en {names.get(h['neighborhood_id'], 'zona ' + str(h['neighborhood_id']))} los "
-            f"{DAYS_ES[h['day_of_week']]} {BLOCKS_ES[h['hour_block']]} (indice {round(h['risk_score'] * 100)}%)."
+            f"{DAYS_ES[h['day_of_week']]} {BLOCKS_ES[h['hour_block']]} (índice {round(h['risk_score'] * 100)}%)."
         )
     if reports:
         common = Counter(r["incident_type_code"] for r in reports).most_common(1)[0]
         hours = Counter(parse_dt(r["occurred_at"]).hour for r in reports).most_common(1)[0][0]
-        insights.append(f"Incidente mas frecuente: {TYPE_NAMES.get(common[0], common[0])} ({common[1]} casos). Hora con mas reportes: {hours}:00.")
+        insights.append(f"Incidente más frecuente: {TYPE_NAMES.get(common[0], common[0])} ({common[1]} casos). Hora con más reportes: {hours}:00.")
 
     return {
         "model": f"{registry.heatmap.name} + temporal_decay",
